@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f3ec">
+  <meta name="description" content="Organizador de clientes, pedidos y pagos.">
+  <title>OrderOrganizer</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="brand">OrderOrganizer</div>
+      <div class="subtitle">Tus pedidos, en orden.</div>
+    </div>
+    <button id="headerAdd" class="icon-button" aria-label="Añadir">＋</button>
+  </header>
+
+  <main id="app" class="main-content">
+    <section id="view-dashboard" class="view">
+      <div class="welcome">
+        <p class="eyebrow">TU NEGOCIO</p>
+        <h1>¡Hola!</h1>
+        <p>Esto es lo que está pasando hoy.</p>
+      </div>
+
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span>Clientes</span>
+          <strong id="statClients">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Pedidos</span>
+          <strong id="statOrders">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Por cobrar</span>
+          <strong id="statPending">$0.00</strong>
+        </article>
+        <article class="stat-card">
+          <span>Pagado</span>
+          <strong id="statPaid">$0.00</strong>
+        </article>
+      </div>
+
+      <div class="section-heading">
+        <h2>Pedidos recientes</h2>
+        <button class="text-button" data-go="orders">Ver todos</button>
+      </div>
+      <div id="recentOrders" class="stack"></div>
+
+      <button class="primary-button full-button" data-action="new-order">
+        ＋ Crear pedido
+      </button>
+    </section>
+
+    <section id="view-clients" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">CONTACTOS</p>
+          <h1>Clientes</h1>
+        </div>
+        <button class="primary-button" data-action="new-client">＋ Nuevo</button>
+      </div>
+
+      <input id="clientSearch" class="search-input"
+        type="search" placeholder="Buscar cliente…">
+
+      <div id="clientsList" class="stack"></div>
+    </section>
+
+    <section id="view-orders" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">SEGUIMIENTO</p>
+          <h1>Pedidos</h1>
+        </div>
+        <button class="primary-button" data-action="new-order">＋ Nuevo</button>
+      </div>
+      <input id="orderSearch" class="search-input"
+        type="search" placeholder="Buscar cliente o producto…">
+      <div id="ordersList" class="stack"></div>
+    </section>
+
+    <section id="view-payments" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">DINERO</p>
+          <h1>Pagos</h1>
+        </div>
+        <button class="primary-button" data-action="new-payment">＋ Registrar</button>
+      </div>
+      <div id="paymentsList" class="stack"></div>
+    </section>
+
+    <section id="view-settings" class="view hidden">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">PERSONALIZACIÓN</p>
+          <h1>Configuración</h1>
+        </div>
+      </div>
+
+      <form id="settingsForm" class="panel form-stack">
+        <label>
+          Nombre del negocio
+          <input name="businessName" placeholder="Mi negocio">
+        </label>
+        <label>
+          Moneda predeterminada
+          <select name="currency">
+            <option value="USD">USD — Dólares</option>
+            <option value="VES">VES — Bolívares</option>
+            <option value="USDT">USDT — Tether</option>
+          </select>
+        </label>
+        <button class="primary-button" type="submit">Guardar configuración</button>
+      </form>
+
+      <div class="panel form-stack">
+        <h2>Copia de seguridad</h2>
+        <p class="muted">Exporta clientes, pedidos, piezas, fotos y pagos a un archivo JSON.</p>
+        <button class="secondary-button" id="exportBackup">Exportar respaldo</button>
+        <label class="secondary-button file-button">
+          Importar respaldo
+          <input id="importBackup" type="file" accept=".json,application/json" hidden>
+        </label>
+        <p class="muted small">Importar un respaldo reemplaza los datos actuales. Hazlo solo si estás seguro.</p>
+      </div>
+
+      <p class="muted small">OrderOrganizer 1.0 · Almacenamiento local</p>
+    </section>
+
+    <section id="view-client-detail" class="view hidden">
+      <button class="text-button back-button" data-go="clients">← Volver a clientes</button>
+      <div id="clientDetail"></div>
+    </section>
+
+    <section id="view-order-detail" class="view hidden">
+      <button class="text-button back-button" data-go="orders">← Volver a pedidos</button>
+      <div id="orderDetail"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    <button class="nav-button active" data-go="dashboard">
+      <span>⌂</span><small>Inicio</small>
+    </button>
+    <button class="nav-button" data-go="clients">
+      <span>♙</span><small>Clientes</small>
+    </button>
+    <button class="nav-button" data-go="orders">
+      <span>▤</span><small>Pedidos</small>
+    </button>
+    <button class="nav-button" data-go="payments">
+      <span>＄</span><small>Pagos</small>
+    </button>
+    <button class="nav-button" data-go="settings">
+      <span>⚙</span><small>Ajustes</small>
+    </button>
+  </nav>
+
+  <dialog id="modal" class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Nuevo registro</h2>
+      <button type="button" id="closeModal" class="icon-button" aria-label="Cerrar">×</button>
+    </div>
+    <div id="modalBody"></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="database.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "id": "./",
+  "name": "OrderOrganizer",
+  "short_name": "Orders",
+  "description": "Organizador local de clientes, pedidos y pagos",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f3ec",
+  "theme_color": "#f7f3ec",
+  "categories": ["productivity", "business"]
+}

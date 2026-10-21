@@ -1,0 +1,10 @@
+node_modules/
+.gradle/
+**/build/
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*backup*
+*respaldo*
+.DS_Store
