@@ -8,8 +8,10 @@
     clients: [],
     orders: [],
     payments: [],
-    settings: { id: "main", businessName: "Mi negocio", currency: "USD" },
+    settings: { id: "main", businessName: "Mi negocio", currency: "USD", theme: "light" },
     view: "dashboard",
+    profile: null,
+    editingProfileId: null,
     selectedClientId: null,
     selectedOrderId: null
   };
@@ -140,9 +142,25 @@
     state.orders = orders || [];
     state.payments = payments || [];
     state.settings = settings.find(item => item.id === "main") ||
-      { id: "main", businessName: "Mi negocio", currency: "USD" };
+      { id: "main", businessName: "Mi negocio", currency: "USD", theme: "light" };
+    applyTheme();
 
     renderAll();
+  }
+
+  function applyTheme() {
+    const theme = state.settings?.theme === "dark" ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    document.body.dataset.theme = theme;
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute("content", theme === "dark" ? "#1f201d" : "#f7f3ec");
+  }
+
+  function greetingText() {
+    const hour = new Date().getHours();
+    if (hour < 12) return "¡Buenos días!";
+    if (hour < 19) return "¡Buenas tardes!";
+    return "¡Buenas noches!";
   }
 
   function showView(view) {
@@ -150,7 +168,12 @@
 
     $$(".view").forEach(element => element.classList.add("hidden"));
     const target = $("#view-" + view);
-    if (target) target.classList.remove("hidden");
+    if (target) {
+      target.classList.remove("hidden");
+      target.classList.remove("view-enter");
+      void target.offsetWidth;
+      target.classList.add("view-enter");
+    }
 
     $$(".nav-button").forEach(button => {
       button.classList.toggle("active", button.dataset.go === view);
@@ -167,6 +190,12 @@
   }
 
   function renderDashboard() {
+    const businessName = state.settings.businessName || "Mi negocio";
+    $("#welcomeGreeting").textContent = greetingText();
+    $("#welcomeBusinessName").textContent = businessName;
+    $("#welcomeMessage").textContent = state.orders.length
+      ? `Tienes ${state.orders.length} ${state.orders.length === 1 ? "pedido" : "pedidos"} en seguimiento. Vamos paso a paso.`
+      : "Todo empieza aquí. Organiza tus pedidos y mantén tu negocio al día.";
     $("#statClients").textContent = state.clients.length;
     $("#statOrders").textContent = state.orders.length;
 
@@ -366,6 +395,16 @@
     form.elements.businessName.value = state.settings.businessName || "";
     form.elements.currency.value = currencies.includes(state.settings.currency)
       ? state.settings.currency : "USD";
+    form.elements.theme.value = state.settings.theme === "dark" ? "dark" : "light";
+    const logo = state.settings.logo || "";
+    $("#businessLogoPreview").src = logo;
+    $("#businessLogoPreviewWrap").classList.toggle("hidden", !logo);
+    $("#currentProfileName").textContent = state.profile?.name || "Mi perfil";
+    // El logo de OrderOrganizer es fijo e independiente del logo comercial del perfil.
+    $("#headerBusinessLogo").src = "assets/orderorganizer-logo.png";
+    $("#headerBusinessLogo").classList.remove("hidden");
+    $("#startupLogo").src = "assets/orderorganizer-logo.png";
+    $("#startupLogo").classList.remove("hidden");
   }
 
   function renderAll() {
@@ -436,10 +475,10 @@
     });
   }
 
-  function pieceForm(index, item = {}) {
+  function pieceForm(index, item = {}, allowRemove = false) {
     return `
       <section class="piece-form" data-piece="${index}">
-        <div class="piece-title"><strong>Pieza ${index + 1}</strong></div>
+        <div class="piece-title"><strong>Pieza ${index + 1}</strong>${allowRemove ? `<button type="button" class="remove-piece-button" data-remove-piece="${index}" aria-label="Quitar pieza ${index + 1}">Quitar pieza ×</button>` : ""}</div>
         <label>Foto de la pieza
           <input type="file" accept="image/*" data-photo="${index}">
         </label>
@@ -475,8 +514,9 @@
         ${!state.clients.length ? `<p class="muted small">Primero debes crear un cliente.</p>` : ""}
         <label>Cantidad de piezas
           <input id="pieceCount" type="number" min="1" max="30" value="${items.length}" required>
+          ${order.id ? `<span class="muted small">También puedes quitar piezas individualmente con el botón de cada una.</span>` : ""}
         </label>
-        <div id="pieceForms">${items.map((item, index) => pieceForm(index, item)).join("")}</div>
+        <div id="pieceForms">${items.map((item, index) => pieceForm(index, item, Boolean(order.id))).join("")}</div>
         <label>Fecha de entrega estimada (opcional)
           <input name="estimatedDate" type="date" value="${escapeHTML(order.estimatedDate || "")}">
         </label>
@@ -583,13 +623,39 @@
       current.length = safeCount;
       photoState.length = safeCount;
 
-      container.innerHTML = current.map((item, index) => pieceForm(index, item)).join("");
+      container.innerHTML = current.map((item, index) => pieceForm(index, item, Boolean(orderId))).join("");
       current.forEach((item, index) => photoState[index] = item.photo || "");
       updateTotal();
     }
 
     $("#pieceCount").addEventListener("change", event => {
       resizePieceForms(event.target.value);
+    });
+
+    $("#pieceForms").addEventListener("click", event => {
+      const button = event.target.closest("[data-remove-piece]");
+      if (!button) return;
+      const indexToRemove = Number(button.dataset.removePiece);
+      const container = $("#pieceForms");
+      const current = [...container.querySelectorAll(".piece-form")].map(section => {
+        const index = Number(section.dataset.piece);
+        return {
+          name: section.querySelector(`[data-name="${index}"]`).value,
+          price: section.querySelector(`[data-price="${index}"]`).value,
+          description: section.querySelector(`[data-description="${index}"]`).value,
+          photo: photoState[index] || ""
+        };
+      });
+      if (current.length <= 1) {
+        toast("El pedido debe conservar al menos una pieza. Puedes vaciar sus campos si vas a cambiarla.");
+        return;
+      }
+      current.splice(indexToRemove, 1);
+      photoState.splice(indexToRemove, 1);
+      container.innerHTML = current.map((item, index) => pieceForm(index, item, Boolean(orderId))).join("");
+      $("#pieceCount").value = current.length;
+      updateTotal();
+      toast("Pieza quitada. Guarda el pedido para confirmar el cambio.");
     });
 
     $("#pieceForms").addEventListener("input", event => {
@@ -765,10 +831,100 @@
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
+  function showStartup() {
+    $("#startupScreen").classList.remove("hidden");
+    $("#profileScreen").classList.add("hidden");
+    $("#app").classList.add("hidden");
+    $(".topbar").classList.add("hidden");
+    $(".bottom-nav").classList.add("hidden");
+    document.body.classList.add("startup-active");
+  }
+
+  function showProfilePicker() {
+    $("#startupScreen").classList.add("hidden");
+    $("#profileScreen").classList.remove("hidden");
+    $("#app").classList.add("hidden");
+    $(".topbar").classList.add("hidden");
+    $(".bottom-nav").classList.add("hidden");
+    document.body.classList.remove("startup-active");
+    state.editingProfileId = null;
+    $("#profileCreateForm").reset();
+    $("#profileFormTitle").textContent = "Crear un perfil";
+    $("#saveProfileButton").textContent = "Crear perfil";
+    $("#cancelProfileEdit").classList.add("hidden");
+    renderProfiles();
+  }
+
+  async function renderProfiles() {
+    const profiles = await OrderDB.listProfiles();
+    const container = $("#profileList");
+    container.innerHTML = profiles.map(profile => `
+      <article class="profile-card">
+        <button class="profile-open" type="button" data-open-profile="${escapeHTML(profile.id)}">
+          <span class="profile-avatar">${escapeHTML((profile.name || "P").trim().charAt(0).toLocaleUpperCase())}</span>
+          <span class="profile-card-copy"><strong>${escapeHTML(profile.name)}</strong><small>Entrar a este perfil</small></span>
+          <span class="profile-arrow">›</span>
+        </button>
+        <div class="profile-card-actions"><button type="button" class="text-button" data-edit-profile="${escapeHTML(profile.id)}">Editar nombre</button>${profiles.length > 1 ? `<button type="button" class="text-button danger-text" data-delete-profile="${escapeHTML(profile.id)}">Eliminar</button>` : ""}</div>
+      </article>`).join("");
+    $("#profileHeading").textContent = profiles.length ? "¿Quién va a trabajar hoy?" : "Crea tu primer perfil";
+  }
+
+  async function enterProfile(id) {
+    const profile = await OrderDB.setActiveProfile(id);
+    state.profile = profile;
+    $("#profileScreen").classList.add("profile-exit");
+    await new Promise(resolve => setTimeout(resolve, 260));
+    $("#profileScreen").classList.add("hidden");
+    $("#profileScreen").classList.remove("profile-exit");
+    $(".topbar").classList.remove("hidden");
+    $(".bottom-nav").classList.remove("hidden");
+    $("#app").classList.remove("hidden");
+    await refreshData();
+    showView("dashboard");
+  }
+
+  function beginProfileEdit(id) {
+    OrderDB.listProfiles().then(profiles => {
+      const profile = profiles.find(item => item.id === id);
+      if (!profile) return;
+      state.editingProfileId = id;
+      $("#profileNameInput").value = profile.name;
+      $("#profileFormTitle").textContent = "Editar perfil";
+      $("#saveProfileButton").textContent = "Guardar cambios";
+      $("#cancelProfileEdit").classList.remove("hidden");
+      $("#profileNameInput").focus();
+      $("#profileCreateForm").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
+  function applyLogoFromSettings() {
+    const logo = state.settings.logo || "";
+    // Este logo pertenece al negocio/perfil y solo se muestra en su configuración.
+    $("#businessLogoPreview").src = logo;
+    $("#businessLogoPreviewWrap").classList.toggle("hidden", !logo);
+    $("#headerBusinessLogo").src = "assets/orderorganizer-logo.png";
+    $("#headerBusinessLogo").classList.remove("hidden");
+    $("#startupLogo").src = "assets/orderorganizer-logo.png";
+    $("#startupLogo").classList.remove("hidden");
+  }
+
   function bindEvents() {
     document.addEventListener("click", async event => {
       const target = event.target.closest("button");
       if (!target) return;
+
+      if (target.dataset.openProfile) { try { await enterProfile(target.dataset.openProfile); } catch (error) { alert(error.message || "No se pudo abrir el perfil."); } return; }
+      if (target.dataset.editProfile) { beginProfileEdit(target.dataset.editProfile); return; }
+      if (target.dataset.deleteProfile) {
+        const profiles = await OrderDB.listProfiles();
+        const profile = profiles.find(item => item.id === target.dataset.deleteProfile);
+        if (!profile) return;
+        if (!confirm(`¿Eliminar el perfil «${profile.name}» y TODOS sus clientes, pedidos, piezas, pagos y configuración? Esta acción no se puede deshacer.`)) return;
+        try { await OrderDB.deleteProfile(profile.id); await renderProfiles(); toast("Perfil eliminado."); }
+        catch (error) { alert(error.message || "No se pudo eliminar el perfil."); }
+        return;
+      }
 
       if (target.dataset.go) {
         showView(target.dataset.go);
@@ -857,14 +1013,84 @@
       const form = new FormData(event.currentTarget);
 
       state.settings = {
+        ...state.settings,
         id: "main",
         businessName: String(form.get("businessName") || "").trim() || "Mi negocio",
-        currency: currencies.includes(form.get("currency")) ? form.get("currency") : "USD"
+        currency: currencies.includes(form.get("currency")) ? form.get("currency") : "USD",
+        theme: form.get("theme") === "dark" ? "dark" : "light"
       };
 
+      applyTheme();
       await OrderDB.save("settings", state.settings);
       renderAll();
       toast("Configuración guardada.");
+    });
+
+    $("#businessLogoInput").addEventListener("change", async event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        if (!file.type.startsWith("image/")) throw new Error("Selecciona un archivo de imagen.");
+        if (file.size > 8 * 1024 * 1024) throw new Error("El logo debe pesar menos de 8 MB.");
+        state.settings.logo = await readFileAsDataURL(file);
+
+        await OrderDB.save("settings", state.settings);
+        applyLogoFromSettings();
+        renderSettings();
+        toast("Logo actualizado.");
+      } catch (error) { toast(error.message || "No se pudo cargar el logo."); }
+      finally { event.target.value = ""; }
+    });
+
+    $("#removeBusinessLogo").addEventListener("click", async () => {
+      state.settings.logo = "";
+
+      await OrderDB.save("settings", state.settings);
+      applyLogoFromSettings();
+      renderSettings();
+      toast("Logo eliminado.");
+    });
+
+    $("#switchProfileButton").addEventListener("click", () => {
+      if (!confirm("¿Salir de este perfil y volver a la selección de perfiles? Los datos guardados permanecerán intactos.")) return;
+      showProfilePicker();
+    });
+    $("#editCurrentProfileButton").addEventListener("click", () => {
+      const id = state.profile?.id || "default";
+      showProfilePicker();
+      setTimeout(() => beginProfileEdit(id), 80);
+    });
+    $("#cancelProfileEdit").addEventListener("click", () => {
+      state.editingProfileId = null;
+      $("#profileCreateForm").reset();
+      $("#profileFormTitle").textContent = "Crear un perfil";
+      $("#saveProfileButton").textContent = "Crear perfil";
+      $("#cancelProfileEdit").classList.add("hidden");
+    });
+    $("#profileCreateForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const name = $("#profileNameInput").value.trim();
+      try {
+        if (state.editingProfileId) {
+          const id = state.editingProfileId;
+          await OrderDB.updateProfile(id, name);
+          state.editingProfileId = null;
+          if (state.profile?.id === id) state.profile = await OrderDB.getActiveProfile();
+          toast("Nombre del perfil actualizado.");
+        } else {
+          const profile = await OrderDB.createProfile(name);
+          await renderProfiles();
+          $("#profileNameInput").value = "";
+          if (confirm(`Perfil «${profile.name}» creado. ¿Quieres entrar ahora?`)) { await enterProfile(profile.id); return; }
+          toast("Perfil creado.");
+        }
+        $("#profileCreateForm").reset();
+        $("#profileFormTitle").textContent = "Crear un perfil";
+        $("#saveProfileButton").textContent = "Crear perfil";
+        $("#cancelProfileEdit").classList.add("hidden");
+        await renderProfiles();
+        if (state.profile) $("#currentProfileName").textContent = state.profile.name;
+      } catch (error) { alert(error.message || "No se pudo guardar el perfil."); }
     });
 
     $("#exportBackup").addEventListener("click", async () => {
@@ -900,16 +1126,19 @@
   }
 
   async function init() {
+    bindEvents();
+    showStartup();
     try {
+      $("#startupLogo").src = "assets/orderorganizer-logo.png";
+      $("#startupLogo").classList.remove("hidden");
       await OrderDB.openDB();
-      bindEvents();
-      await refreshData();
-      showView("dashboard");
-
+      const active = await OrderDB.getActiveProfile();
+      state.profile = active;
+      await new Promise(resolve => setTimeout(resolve, 1450));
+      showProfilePicker();
+      // Keep the selected profile marked in the list; no automatic entry so the user always chooses.
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
-        navigator.serviceWorker.register("./service-worker.js").catch(error => {
-          console.warn("No se pudo registrar el modo sin conexión:", error);
-        });
+        navigator.serviceWorker.register("./service-worker.js").catch(error => console.warn("No se pudo registrar el modo sin conexión:", error));
       }
     } catch (error) {
       console.error(error);

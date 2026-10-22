@@ -10,9 +10,33 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <section id="startupScreen" class="startup-screen" aria-label="Iniciando OrderOrganizer">
+    <div class="startup-glow"></div>
+    <div class="startup-logo-wrap"><img id="startupLogo" class="startup-logo" src="assets/orderorganizer-logo.png" alt="Logo de OrderOrganizer"></div>
+    <div class="startup-name">OrderOrganizer</div>
+    <div class="startup-tagline">Todo en orden, a tu manera.</div>
+    <div class="startup-loader"><span></span></div>
+  </section>
+
+  <section id="profileScreen" class="profile-screen hidden" aria-label="Seleccionar perfil">
+    <div class="profile-shell">
+      <div class="profile-brand"><div class="profile-brand-mark">O</div><div><strong>OrderOrganizer</strong><p>Tu espacio, tus pedidos.</p></div></div>
+      <p class="eyebrow">BIENVENIDO</p>
+      <h1 id="profileHeading">¿Quién va a trabajar hoy?</h1>
+      <p class="muted profile-intro">Elige tu perfil para entrar a tu espacio privado.</p>
+      <div id="profileList" class="profile-list"></div>
+      <form id="profileCreateForm" class="panel form-stack profile-create-form">
+        <h2 id="profileFormTitle">Crear un perfil</h2>
+        <label>Nombre del perfil<input id="profileNameInput" maxlength="50" required placeholder="Ej. Mi negocio"></label>
+        <div class="profile-form-actions"><button id="cancelProfileEdit" class="secondary-button hidden" type="button">Cancelar</button><button class="primary-button" id="saveProfileButton" type="submit">Crear perfil</button></div>
+      </form>
+      <p class="muted small profile-footnote">Cada perfil tiene sus propios clientes, pedidos, pagos y configuración.</p>
+    </div>
+  </section>
+
   <header class="topbar">
     <div>
-      <div class="brand">OrderOrganizer</div>
+      <div class="brand-line"><img id="headerBusinessLogo" class="header-business-logo" src="assets/orderorganizer-logo.png" alt="Logo de OrderOrganizer"><div class="brand">OrderOrganizer</div></div>
       <div class="subtitle">Tus pedidos, en orden.</div>
     </div>
     <button id="headerAdd" class="icon-button" aria-label="Añadir">＋</button>
@@ -20,11 +44,16 @@
 
   <main id="app" class="main-content">
     <section id="view-dashboard" class="view">
-      <div class="welcome">
-        <p class="eyebrow">TU NEGOCIO</p>
-        <h1>¡Hola!</h1>
-        <p>Esto es lo que está pasando hoy.</p>
-      </div>
+      <section class="welcome welcome-card">
+        <div class="welcome-copy">
+          <p class="eyebrow">TU ESPACIO DE TRABAJO</p>
+          <h1 id="welcomeGreeting">¡Qué bueno verte!</h1>
+          <p id="welcomeBusinessName" class="welcome-business">Mi negocio</p>
+          <p id="welcomeMessage" class="welcome-message">Aquí tienes el resumen de tu negocio para hoy.</p>
+          <button class="primary-button welcome-cta" data-action="new-order">＋ Crear un pedido</button>
+        </div>
+        <div class="welcome-art" aria-hidden="true"><span class="welcome-art-orbit"></span><span class="welcome-art-card card-one">✓</span><span class="welcome-art-card card-two">＋</span><span class="welcome-art-main">▤</span></div>
+      </section>
 
       <div class="stats-grid">
         <article class="stat-card">
@@ -116,8 +145,28 @@
             <option value="USDT">USDT — Tether</option>
           </select>
         </label>
+        <label>Logo del negocio
+          <input id="businessLogoInput" type="file" accept="image/*">
+        </label>
+        <div id="businessLogoPreviewWrap" class="business-logo-preview-wrap hidden"><img id="businessLogoPreview" alt="Vista previa del logo"><button id="removeBusinessLogo" class="secondary-button" type="button">Quitar logo</button></div>
+        <p class="muted small">El logo se mostrará al iniciar la app y junto al nombre. Puedes cambiarlo cuando quieras.</p>
+        <label>
+          Apariencia de la aplicación
+          <select name="theme">
+            <option value="light">Claro · crema</option>
+            <option value="dark">Oscuro</option>
+          </select>
+        </label>
+        <p class="muted small">El tema se guarda en este dispositivo y se mantiene al volver a abrir la aplicación.</p>
         <button class="primary-button" type="submit">Guardar configuración</button>
       </form>
+
+      <div class="panel form-stack profile-management-panel">
+        <h2>Perfil actual</h2>
+        <p id="currentProfileName" class="muted">Perfil</p>
+        <button id="switchProfileButton" class="secondary-button" type="button">Salir y cambiar de perfil</button>
+        <button id="editCurrentProfileButton" class="secondary-button" type="button">Cambiar nombre del perfil</button>
+      </div>
 
       <div class="panel form-stack">
         <h2>Copia de seguridad</h2>

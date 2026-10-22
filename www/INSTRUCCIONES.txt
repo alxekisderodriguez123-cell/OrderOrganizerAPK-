@@ -1,0 +1,39 @@
+ORDERORGANIZER — LOGO OFICIAL + ICONO ANDROID
+================================================
+
+Este paquete conserva los archivos de la actualización de perfiles y añade el logo oficial independiente de los logos comerciales de cada perfil.
+
+CONTENIDO
+- app.js, database.js, index.html, styles.css: archivos actualizados de la app.
+- assets/orderorganizer-logo.png: logo fijo que usa la animación de entrada y el encabezado.
+- resources/icon.png: fuente cuadrada del icono Android, con margen para que no se corte el círculo.
+- resources/splash.png: fuente de imagen para recursos de inicio nativos.
+
+PASO 1 — ACTUALIZAR LA APP WEB
+1. Descomprime este ZIP.
+2. Copia app.js, database.js, index.html y styles.css dentro de la carpeta www del proyecto, reemplazando los anteriores.
+3. Copia la carpeta assets dentro de www (debe quedar www/assets/orderorganizer-logo.png).
+4. No borres manifest.json, service-worker.js, capacitor.config.json ni la carpeta android.
+5. Prueba la app en el navegador antes de generar el APK. El logo de la app ahora es fijo; el logo comercial subido en Configuración solo pertenece al perfil y no cambiará la animación ni el encabezado.
+
+PASO 2 — GENERAR LOS ICONOS NATIVOS DE ANDROID
+Abre una terminal en la carpeta raíz del proyecto (donde está package.json) y ejecuta:
+
+  npm install -D @capacitor/assets
+  npx capacitor-assets generate --android
+  npx cap sync android
+
+Esto genera los tamaños/densidades que Android necesita dentro de android. Revisa el resultado y conserva esos cambios en el proyecto. Si el comando de capacitor-assets no reconoce la carpeta android, verifica que exista android/ y que @capacitor/android esté instalado.
+
+PASO 3 — COMPILAR LA ACTUALIZACIÓN
+Si el APK se compila con GitHub Actions:
+1. Copia también la carpeta resources del ZIP a la raíz del proyecto.
+2. Ejecuta los comandos del paso 2 localmente.
+3. Guarda los cambios generados dentro de android/ y los cambios de package.json/package-lock.json en Git.
+4. Sube los cambios al repositorio y lanza el workflow de compilación.
+
+IMPORTANTE
+- El icono de Android no cambia solo por reemplazar www: los recursos nativos deben generarse y estar incluidos en android antes de compilar.
+- La app usa ahora assets/orderorganizer-logo.png en la animación de entrada y en el encabezado, independiente del logo comercial de cada perfil.
+- No se ha compilado ni probado un APK desde este paquete; primero prueba la versión web y después genera el APK.
+- No desinstales la app para probar, salvo que tengas un respaldo de tus datos. Reemplazar los archivos web no debería borrar las bases de datos locales.
